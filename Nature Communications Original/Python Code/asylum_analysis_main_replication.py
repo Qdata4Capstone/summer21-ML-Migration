@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
-# from autoimpute.imputations import MiceImputer,SingleImputer
+from autoimpute.imputations import MiceImputer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from statsmodels.imputation.mice import MICE
@@ -55,7 +55,7 @@ for group,key in yy:
 if DEPVAR == "asylum seekers":
 	dataset['orig_depvar'] = dataset['n_asylum_eu28']
 	dataset['ln_depvar_pop'] = dataset['n_asylum_eu28']
-	dataset.loc[dataset['n_asylum_eu28']>0, 'ln_depvar_pop'] = dataset['n_asylum_eu28']/dataset['wdi_pop']/1e6
+	dataset.loc[dataset['n_asylum_eu28']>0, 'ln_depvar_pop'] = dataset['n_asylum_eu28']/(dataset['wdi_pop']/1e6)
 	dataset.loc[dataset['n_asylum_eu28']<=0, 'ln_depvar_pop'] = 1
 	# dataset = dataset[dataset['ln_depvar_pop'].notna()]
 	# dataset = dataset.dropna()
@@ -91,8 +91,8 @@ impute_dataset['homicide'] = impute_dataset['homicide'].apply(lambda x: np.log(x
 # Second order tmp_pop
 impute_dataset['tmp_pop_sq'] = impute_dataset['tmp_pop'].apply(lambda x: np.power(x,2))
 
-impute_dataset['spei3_gs_pos'] = -1*impute_dataset['spei3_gs_pos']
-impute_dataset['spei3_gs_neg'] = -1*impute_dataset['spei3_gs_neg']
+# impute_dataset['spei3_gs_pos'] = -1*impute_dataset['spei3_gs_pos']
+# impute_dataset['spei3_gs_neg'] = -1*impute_dataset['spei3_gs_neg']
 
 # 3 year moving average
 impute_dataset['spei3_gs_pos_r3'] = impute_dataset['spei3_gs_pos'].rolling(3,min_periods=1).mean()
@@ -130,7 +130,6 @@ strats = {
 	'physical_integrity':'pmm', 
 	'free_movement':'pmm', 
 	'homicide':'pmm'
-
 }
 
 # mice = MiceImputer(
@@ -143,8 +142,9 @@ strats = {
 # )
 
 
-# impute_dataset = impute_dataset.replace([np.inf, -np.inf], np.nan)
+impute_dataset = impute_dataset.replace([np.inf, -np.inf], np.nan)
 # mice.fit_transform(impute_dataset)
+# exit(0)
 # c = impute_dataset['country']
 # y = impute_dataset['year']
 # d = impute_dataset['depvar']
@@ -164,7 +164,7 @@ strats = {
 # impute_dataset = mod_impute
 
 # Naive Impute
-# impute_dataset = impute_dataset.fillna(0)
+impute_dataset = impute_dataset.fillna(0)
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
 #     print(mod_impute['country'])
@@ -180,36 +180,36 @@ strats = {
 
 # statsmodel
 # print(impute_dataset)
-c = impute_dataset['country']
-y = impute_dataset['year']
-impute_dataset = impute_dataset.drop(columns=['country','year'])
+# c = impute_dataset['country']
+# y = impute_dataset['year']
+# impute_dataset = impute_dataset.drop(columns=['country','year'])
 
-print("Imputing.....")
-imp = MICEData(impute_dataset)
-fml = 'depvar ~ highest_neighbor_dem+ area+ wdi_pop+ wdi_urban_pop+ distance_to_eu+ wdi_gdppc_growth+ wdi_gdppc+ perc_post_secondary+ kof_index+ wdi_imr+tmp_pop+ spei3_gs_pos+ spei3_gs_neg+casualties_brd+ annually_affected_20k+ physical_integrity+ free_movement+ homicide'
-mice = MICE(fml, sm.OLS, imp)
-results = mice.fit(3, 10)
-imputations = []
-print(results.summary())
-for j in range(2):
-	imp.update_all()
-	temp = imp.data
-	temp['country'] = c
-	temp['year'] = y
+# print("Imputing.....")
+# imp = MICEData(impute_dataset)
+# fml = 'depvar ~ highest_neighbor_dem+ area+ wdi_pop+ wdi_urban_pop+ distance_to_eu+ wdi_gdppc_growth+ wdi_gdppc+ perc_post_secondary+ kof_index+ wdi_imr+tmp_pop+ spei3_gs_pos+ spei3_gs_neg+casualties_brd+ annually_affected_20k+ physical_integrity+ free_movement+ homicide'
+# mice = MICE(fml, sm.OLS, imp)
+# results = mice.fit(3, 10)
+# imputations = []
+# print(results.summary())
+# for j in range(10):
+# 	imp.update_all()
+# 	temp = imp.data
+# 	temp['country'] = c
+# 	temp['year'] = y
 
-	temp.loc[temp['spei3_gs_neg']<=0, 'spei3_gs_neg'] = 0
-	temp.loc[temp['spei3_gs_pos']<=0, 'spei3_gs_pos'] = 0
-	temp.loc[temp['kof_index']<=0, 'kof_index'] = 0
-	temp.loc[temp['wdi_urban_pop']<=0, 'wdi_urban_pop'] = 0
-	temp.loc[temp['perc_post_secondary']<=0, 'perc_post_secondary'] = 0
-	temp.loc[temp['wdi_imr']<=0, 'wdi_imr'] = 0
-	temp.loc[temp['distance_to_eu']<=0, 'distance_to_eu'] = 0
+# 	temp.loc[temp['spei3_gs_neg']<=0, 'spei3_gs_neg'] = 0
+# 	temp.loc[temp['spei3_gs_pos']<=0, 'spei3_gs_pos'] = 0
+# 	temp.loc[temp['kof_index']<=0, 'kof_index'] = 0
+# 	temp.loc[temp['wdi_urban_pop']<=0, 'wdi_urban_pop'] = 0
+# 	temp.loc[temp['perc_post_secondary']<=0, 'perc_post_secondary'] = 0
+# 	temp.loc[temp['wdi_imr']<=0, 'wdi_imr'] = 0
+# 	temp.loc[temp['distance_to_eu']<=0, 'distance_to_eu'] = 0
 
-	imputations.append(temp)
+# 	imputations.append(temp)
 
 
-impute_dataset = imputations[0]
-print(impute_dataset)
+# impute_dataset = imputations[0]
+# print(impute_dataset)
 
 grouped_countries = impute_dataset.groupby(['country'])
 # Lag the dataset
@@ -282,9 +282,9 @@ for dropped in to_drop:
 		new_test = []
 		cnt=0
 		for i in range(len(predictions)):
-			if test_targets[i]!=0:
-				new_pred.append(predictions[i])
-				new_test.append(test_targets[i])
+			# if test_targets[i]!=0:
+			new_pred.append(predictions[i])
+			new_test.append(test_targets[i])
 		# mae = mean_absolute_error(np.exp(new_test),np.exp(new_pred))
 		mae = mean_absolute_error(new_test,new_pred)
 		# mae = mean_squared_error(new_test,new_pred)
